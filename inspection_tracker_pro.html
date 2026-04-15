@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Plant Inspection Tracker Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;color:#222;background:#F9F9F9}
+header{background:#0C447C;color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:17px;font-weight:500;letter-spacing:.02em}
+header span{font-size:11px;opacity:.75}
+.container{padding:16px 20px;max-width:1400px;margin:0 auto}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:14px;border-bottom:1px solid #DDD;background:#fff;padding:0 4px}
+.tab{padding:8px 15px;font-size:12px;border:none;background:none;color:#666;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab.active{color:#0C447C;font-weight:500;border-bottom:2px solid #0C447C}
+.tab:hover{color:#0C447C}
+.panel{display:none}.panel.active{display:block}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px}
+.stat{background:#fff;border:1px solid #E8E8E8;border-radius:8px;padding:10px 12px}
+.stat-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:500;color:#222}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.toolbar input[type=text]{flex:1;min-width:130px;padding:6px 10px;border:1px solid #DDD;border-radius:6px;font-size:12px;outline:none}
+.toolbar input:focus{border-color:#378ADD}
+.toolbar select{padding:6px 8px;border:1px solid #DDD;border-radius:6px;font-size:12px;background:#fff;outline:none;cursor:pointer}
+.btn-p{background:#0C447C;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500}
+.btn-p:hover{background:#185FA5}
+button:not(.btn-p):not(.del-btn):not(.notes-btn):not(.note-del){padding:6px 13px;border:1px solid #CCC;border-radius:6px;font-size:12px;background:#fff;cursor:pointer;color:#333}
+button:not(.btn-p):not(.del-btn):not(.notes-btn):not(.note-del):hover{background:#F5F5F5}
+.tw{border:1px solid #DDD;border-radius:10px;overflow:auto;max-height:360px;background:#fff}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{background:#F5F5F5;color:#666;font-weight:500;font-size:11px;text-align:left;padding:7px 8px;border:1px solid #E8E8E8;position:sticky;top:0;z-index:2;cursor:pointer;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+th:hover{color:#0C447C}
+td{padding:5px 7px;border:1px solid #EEEEEE;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;background:#fff}
+td input,td select{width:100%;background:transparent;border:none;outline:none;font-size:11px;color:#222;font-family:Arial,sans-serif}
+td input:focus,td select:focus{background:#EAF3FB;border-radius:3px}
+tr.overdue td{background:#FFF4F4!important}
+tr.due-soon td{background:#FFFBF0!important}
+.notes-btn{background:none;border:1px solid #DDD;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;color:#666;white-space:nowrap}
+.notes-btn.has-notes{background:#E6F1FB;color:#0C447C;border-color:#85B7EB;font-weight:500}
+.notes-btn:hover{background:#F5F5F5}
+.del-btn{background:none;border:none;color:#BBB;font-size:15px;padding:0 3px;cursor:pointer}
+.del-btn:hover{color:#c00}
+.footer{display:flex;justify-content:space-between;align-items:center;margin-top:7px;font-size:11px;color:#888;flex-wrap:wrap;gap:5px}
+.alert-box{border-left:3px solid #E24B4A;background:#FFF0F0;padding:9px 13px;margin-bottom:9px;font-size:12px;color:#9B1C1C;border-radius:0 6px 6px 0}
+.alert-warn{border-left:3px solid #BA7517;background:#FFFBEB;padding:9px 13px;margin-bottom:9px;font-size:12px;color:#854F0B;border-radius:0 6px 6px 0}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.chart-card{background:#fff;border:1px solid #E8E8E8;border-radius:10px;padding:12px}
+.chart-title{font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px}
+.cw{position:relative;width:100%;height:160px}
+.cw2{position:relative;width:100%;height:190px}
+.leg{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:#666;margin-bottom:6px}
+.leg span{display:flex;align-items:center;gap:3px}
+.leg i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.score-bar-wrap{background:#EEEEEE;border-radius:4px;height:5px;width:50px;display:inline-block;vertical-align:middle;margin-left:4px}
+.score-bar{height:5px;border-radius:4px}
+.priority-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #EEEEEE;background:#fff}
+.priority-row:last-child{border-bottom:none}
+.priority-rank{font-size:16px;font-weight:500;min-width:28px;color:#999}
+.priority-info{flex:1;min-width:0}
+.priority-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.priority-sub{font-size:11px;color:#888;margin-top:2px}
+.risk-h{background:#FCEBEB;color:#791F1F;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500;display:inline-block}
+.risk-m{background:#FAEEDA;color:#633806;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500;display:inline-block}
+.risk-l{background:#EAF3DE;color:#27500A;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500;display:inline-block}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:1.4rem;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal h3{font-size:15px;font-weight:500;margin-bottom:12px;color:#0C447C}
+.fld{margin-bottom:9px}
+.fld label{display:block;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.fld input,.fld select,.fld textarea{width:100%;padding:6px 10px;border:1px solid #DDD;border-radius:6px;font-size:13px;color:#222;background:#fff;font-family:Arial,sans-serif;outline:none}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:#378ADD}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.history-item{padding:7px 14px;border-bottom:1px solid #F0F0F0;font-size:12px;display:flex;gap:10px;background:#fff}
+.history-time{color:#AAA;white-space:nowrap;min-width:95px;font-size:11px}
+.section-label{font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 7px}
+.note-entry{padding:9px 12px;border-bottom:1px solid #F0F0F0;display:flex;gap:10px;align-items:flex-start;background:#fff}
+.note-meta{font-size:10px;color:#AAA;white-space:nowrap;min-width:80px;margin-top:1px}
+.note-text{font-size:12px;flex:1;line-height:1.5;color:#333}
+.note-del{background:none;border:none;color:#CCC;cursor:pointer;font-size:14px;padding:0 2px}
+.note-del:hover{color:#c00}
+.email-preview{border:1px solid #DDD;border-radius:10px;overflow:hidden;font-size:12px;background:#fff}
+.email-header{background:#F5F5F5;padding:12px 16px;border-bottom:1px solid #DDD}
+.email-field{display:flex;gap:8px;margin-bottom:4px;font-size:12px;align-items:baseline}
+.email-field-label{color:#888;min-width:50px;font-size:11px;font-weight:500}
+.email-body{padding:16px;line-height:1.75;color:#333}
+.import-area{border:2px dashed #CCC;border-radius:10px;padding:22px;text-align:center;color:#888;font-size:13px;margin-bottom:12px;background:#FAFAFA}
+.import-area input{display:none}
+.card{background:#fff;border:1px solid #E8E8E8;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+@media(max-width:600px){
+  .chart-row{grid-template-columns:1fr}
+  header h1{font-size:14px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+@media print{
+  header{background:#0C447C!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tabs,.toolbar,.modal-overlay{display:none!important}
+  .tw{max-height:none;border:none}
+  table{font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#128203; Plant Inspection Tracker Pro</h1>
+  <span id="header-date"></span>
+</header>
+
+<div class="container">
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('dashboard')">Dashboard</button>
+  <button class="tab" onclick="sw('records')">Records</button>
+  <button class="tab" onclick="sw('priority')">Priority</button>
+  <button class="tab" onclick="sw('analytics')">Analytics</button>
+  <button class="tab" onclick="sw('email')">Weekly email</button>
+  <button class="tab" onclick="sw('report')">PDF report</button>
+  <button class="tab" onclick="sw('import')">Import</button>
+  <button class="tab" onclick="sw('history')">Audit log</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="tab-dashboard" class="panel active">
+  <div class="stats" id="stats"></div>
+  <div id="alerts"></div>
+  <div class="chart-row">
+    <div class="chart-card"><div class="chart-title">Compliance status</div><div class="leg" id="leg1"></div><div class="cw"><canvas id="c1" role="img" aria-label="Compliance donut chart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">System status</div><div class="leg" id="leg2"></div><div class="cw"><canvas id="c2" role="img" aria-label="System status donut chart"></canvas></div></div>
+  </div>
+  <div class="chart-card" style="margin-top:10px"><div class="chart-title">Deficiencies by plant</div><div class="cw2"><canvas id="c3" role="img" aria-label="Deficiencies per plant bar chart"></canvas></div></div>
+</div>
+
+<!-- RECORDS -->
+<div id="tab-records" class="panel">
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Search all fields..." oninput="render()"/>
+    <select id="fc" onchange="render()"><option value="">All compliance</option><option>done</option><option>pending</option></select>
+    <select id="fs" onchange="render()"><option value="">All system status</option><option>satisfactory</option><option>unsatisfactory</option></select>
+    <select id="fr" onchange="render()"><option value="">All risk</option><option>High</option><option>Medium</option><option>Low</option></select>
+    <button class="btn-p" onclick="openAdd()">+ Add record</button>
+    <button onclick="exportCSV()">Export CSV / Excel</button>
+  </div>
+  <div class="tw"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+  <div class="footer">
+    <span id="rowcount"></span>
+    <span>Red row = overdue &nbsp;·&nbsp; Amber = due within 7 days &nbsp;·&nbsp; Score = priority 0–100 &nbsp;·&nbsp; Click header to sort</span>
+  </div>
+</div>
+
+<!-- PRIORITY -->
+<div id="tab-priority" class="panel">
+  <div class="card" style="font-size:12px;color:#555;line-height:1.8;margin-bottom:10px">
+    <b style="color:#0C447C">Priority score formula (0–100)</b><br>
+    Overdue days <b>(40 pts)</b> + Risk level <b>(30 pts)</b> + System status <b>(20 pts)</b> + Compliance <b>(10 pts)</b><br>
+    <span style="color:#888">Higher score = more urgent. Top 3 critical items highlighted in red.</span>
+  </div>
+  <div class="section-label">Action queue — sorted by urgency</div>
+  <div style="border:1px solid #DDD;border-radius:10px;overflow:hidden" id="priority-list"></div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="tab-analytics" class="panel">
+  <div class="stats" id="stats2"></div>
+  <div class="chart-card" style="margin-top:10px"><div class="chart-title">Testing schedule by month</div><div class="cw2"><canvas id="c4" role="img" aria-label="Tests per month bar chart"></canvas></div></div>
+  <div class="chart-row" style="margin-top:10px">
+    <div class="chart-card"><div class="chart-title">Risk distribution</div><div class="leg" id="leg3"></div><div class="cw"><canvas id="c5" role="img" aria-label="Risk level distribution"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Priority score spread</div><div class="cw"><canvas id="c6" role="img" aria-label="Priority score bands"></canvas></div></div>
+  </div>
+</div>
+
+<!-- EMAIL -->
+<div id="tab-email" class="panel">
+  <div class="card">
+    <div class="section-label" style="margin-top:0">Email settings</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="fld"><label>From / Sender name</label><input id="em-from" value="Inspection Team"/></div>
+      <div class="fld"><label>Recipients</label><input id="em-to" value="management@plant.com"/></div>
+      <div class="fld"><label>Week ending date</label><input type="date" id="em-date"/></div>
+      <div class="fld"><label>Site / Plant name</label><input id="em-site" value="All Plants"/></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-p" onclick="genEmail()">Generate email</button>
+      <button onclick="copyEmail()">Copy to clipboard</button>
+      <button onclick="printEmail()">Print / Save as PDF</button>
+    </div>
+  </div>
+  <div class="section-label">Email preview</div>
+  <div class="email-preview" id="email-preview">
+    <div style="padding:2rem;text-align:center;color:#AAA;font-size:13px">Click "Generate email" to preview your weekly summary</div>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div id="tab-report" class="panel">
+  <div class="card">
+    <div class="section-label" style="margin-top:0">Report options</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="fld"><label>Report title</label><input id="rpt-title" value="Plant Inspection Report"/></div>
+      <div class="fld"><label>Prepared by</label><input id="rpt-by" value="Inspection Team"/></div>
+      <div class="fld"><label>Site / Plant</label><input id="rpt-site" value="All Plants"/></div>
+      <div class="fld"><label>Report date</label><input type="date" id="rpt-date"/></div>
+    </div>
+    <div style="display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px"><input type="radio" name="rptf" value="all" checked onchange="renderReport()"> All records</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px"><input type="radio" name="rptf" value="overdue" onchange="renderReport()"> Overdue only</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px"><input type="radio" name="rptf" value="high" onchange="renderReport()"> High risk only</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px"><input type="checkbox" id="rpt-notes" onchange="renderReport()"> Include notes</label>
+    </div>
+    <button class="btn-p" onclick="printReport()">Print / Save as PDF</button>
+  </div>
+  <div class="section-label">Preview</div>
+  <div style="border:1px solid #DDD;border-radius:10px;padding:1.4rem;background:#fff;font-size:12px" id="report-preview"></div>
+</div>
+
+<!-- IMPORT -->
+<div id="tab-import" class="panel">
+  <div class="card">
+    <div class="section-label" style="margin-top:0">Import CSV / Excel data</div>
+    <div class="import-area">
+      <div style="font-size:28px;color:#CCC;margin-bottom:8px">&#8681;</div>
+      <div style="font-weight:500;margin-bottom:6px;color:#555">Upload a CSV file exported from Excel</div>
+      <div style="font-size:11px;color:#AAA;margin-bottom:14px">Columns must match: Serial Number, Plant, Schedule Month, Testing Date, Tag Number, Location, Deficiencies, Responsibility Action, Target Date, Compliance, System Status, Risk Level, Current Status</div>
+      <label class="btn-p" style="display:inline-block;cursor:pointer">Choose file <input type="file" accept=".csv" onchange="importCSV(event)"/></label>
+    </div>
+    <div id="import-msg" style="font-size:12px;color:#555;margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div id="tab-history" class="panel">
+  <div style="border:1px solid #DDD;border-radius:10px;overflow:hidden;max-height:500px;overflow-y:auto;background:#fff" id="history-list"></div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="mwrap">
+  <div class="modal">
+    <h3 id="mtitle">Add new record</h3>
+    <div id="mfields"></div>
+    <div class="modal-btns"><button onclick="closeMod()">Cancel</button><button class="btn-p" onclick="saveMod()">Save record</button></div>
+  </div>
+</div>
+
+<!-- NOTES MODAL -->
+<div class="modal-overlay" id="nwrap">
+  <div class="modal" style="max-width:440px">
+    <h3 id="ntitle">Notes &amp; comments</h3>
+    <div id="notes-list" style="border:1px solid #EEE;border-radius:8px;max-height:220px;overflow-y:auto;margin-bottom:10px"></div>
+    <div class="fld"><label>Add note</label><textarea id="note-input" rows="2" placeholder="Type a comment or observation..."></textarea></div>
+    <div class="fld"><label>Added by</label><input id="note-author" value="Inspector" placeholder="Your name"/></div>
+    <div class="modal-btns"><button onclick="closeNotes()">Close</button><button class="btn-p" onclick="addNote()">Add note</button></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ───────────────────────────────────────────────
+let rows=[
+  {id:1,serial:'1',plant:'PP',month:'Jan',testDate:'2026-01-01',tag:'DV-1',location:'A100',deficiencies:'Nozzle choked',responsibility:'Plant',targetDate:'2026-05-01',compliance:'done',sysStatus:'satisfactory',risk:'Low',currentStatus:'Completed',notes:[]},
+  {id:2,serial:'2',plant:'PE1',month:'Feb',testDate:'2026-02-02',tag:'DV-2',location:'A101',deficiencies:'Puncture in line',responsibility:'Plant',targetDate:'2026-05-02',compliance:'pending',sysStatus:'unsatisfactory',risk:'High',currentStatus:'Overdue',notes:[{text:'Repair team notified 10 Apr. Awaiting spare parts.',author:'Inspector',time:'2026-04-10 09:15'}]},
+  {id:3,serial:'3',plant:'VCM',month:'Mar',testDate:'2026-03-03',tag:'DV-3',location:'A102',deficiencies:'Nozzle missing',responsibility:'Plant',targetDate:'2026-05-03',compliance:'done',sysStatus:'satisfactory',risk:'Medium',currentStatus:'Not completed',notes:[]},
+  {id:4,serial:'4',plant:'TF1',month:'Apr',testDate:'2026-04-04',tag:'DV-4',location:'A103',deficiencies:'Gong bell not working',responsibility:'Plant',targetDate:'2026-05-04',compliance:'done',sysStatus:'unsatisfactory',risk:'Medium',currentStatus:'Next month',notes:[{text:'Bell housing cracked. Replacement ordered.',author:'Site Lead',time:'2026-04-08 14:30'}]},
+  {id:5,serial:'5',plant:'TF1',month:'May',testDate:'2026-05-05',tag:'DV-5',location:'A104',deficiencies:'Upstream valve needs greasing',responsibility:'Plant',targetDate:'2026-05-05',compliance:'pending',sysStatus:'satisfactory',risk:'Low',currentStatus:'Unscheduled maintenance',notes:[]},
+];
+let nextId=6,sortCol='',sortDir=1,auditLog=[],charts={},activeNoteId=null;
+
+const COLS=['#','Plant','Month','Test Date','Tag','Location','Deficiency','Responsibility','Target Date','Compliance','Sys Status','Risk','Score','Status','Notes'];
+const KEYS=['serial','plant','month','testDate','tag','location','deficiencies','responsibility','targetDate','compliance','sysStatus','risk','_score','currentStatus','_notes'];
+const CW=  [38,58,60,100,66,66,155,90,100,80,108,62,75,125,65];
+
+// ── HELPERS ────────────────────────────────────────────
+function log(m){auditLog.unshift({time:new Date().toLocaleString(),msg:m});}
+log('System initialised — 5 records loaded from Excel');
+
+function daysDiff(d){
+  if(!d)return null;
+  const a=new Date(d),b=new Date();b.setHours(0,0,0,0);a.setHours(0,0,0,0);
+  return Math.round((a-b)/864e5);
+}
+function calcScore(r){
+  let s=0;const dd=daysDiff(r.targetDate);
+  if(r.compliance==='pending'){if(dd!==null&&dd<0)s+=Math.min(40,40+dd*(-2));else if(dd!==null&&dd<=7)s+=20;else s+=10;}
+  if(r.risk==='High')s+=30;else if(r.risk==='Medium')s+=15;
+  if(r.sysStatus==='unsatisfactory')s+=20;
+  if(r.compliance==='pending')s+=10;
+  return Math.min(100,Math.max(0,Math.round(s)));
+}
+function scoreColor(s){return s>=70?'#C81E1E':s>=40?'#854F0B':'#166534';}
+function rowClass(r){
+  if(r.compliance==='pending'){const d=daysDiff(r.targetDate);if(d!==null&&d<0)return 'overdue';if(d!==null&&d<=7)return 'due-soon';}return '';
+}
+function riskBadge(r){return r.risk==='High'?'<span class="risk-h">High</span>':r.risk==='Medium'?'<span class="risk-m">Medium</span>':'<span class="risk-l">Low</span>';}
+
+// ── STATS & ALERTS ─────────────────────────────────────
+function updateStats(){
+  const total=rows.length,done=rows.filter(r=>r.compliance==='done').length;
+  const pending=rows.length-done,unsat=rows.filter(r=>r.sysStatus==='unsatisfactory').length;
+  const overdue=rows.filter(r=>r.compliance==='pending'&&daysDiff(r.targetDate)<0).length;
+  const high=rows.filter(r=>r.risk==='High').length;
+  const pct=total?Math.round(done/total*100):0;
+  const avgScore=rows.length?Math.round(rows.reduce((a,r)=>a+calcScore(r),0)/rows.length):0;
+  const totalNotes=rows.reduce((a,r)=>a+(r.notes||[]).length,0);
+  const s=`
+    <div class="stat"><div class="stat-label">Total records</div><div class="stat-val">${total}</div></div>
+    <div class="stat"><div class="stat-label">Compliance %</div><div class="stat-val" style="color:#166534">${pct}%</div></div>
+    <div class="stat"><div class="stat-label">Pending</div><div class="stat-val" style="color:#854F0B">${pending}</div></div>
+    <div class="stat"><div class="stat-label">Overdue</div><div class="stat-val" style="color:#C81E1E">${overdue}</div></div>
+    <div class="stat"><div class="stat-label">Unsatisfactory</div><div class="stat-val" style="color:#C81E1E">${unsat}</div></div>
+    <div class="stat"><div class="stat-label">High risk</div><div class="stat-val" style="color:#C81E1E">${high}</div></div>
+    <div class="stat"><div class="stat-label">Avg priority</div><div class="stat-val" style="color:${scoreColor(avgScore)}">${avgScore}</div></div>
+    <div class="stat"><div class="stat-label">Total notes</div><div class="stat-val" style="color:#0C447C">${totalNotes}</div></div>
+  `;
+  document.getElementById('stats').innerHTML=s;
+  const s2=document.getElementById('stats2');if(s2)s2.innerHTML=s;
+  const alerts=[];
+  const or=rows.filter(r=>r.compliance==='pending'&&daysDiff(r.targetDate)<0);
+  if(or.length)alerts.push(`<div class="alert-box"><b>&#9888; ${or.length} overdue item${or.length>1?'s':''}</b> — ${or.map(r=>r.tag).join(', ')} — immediate action required.</div>`);
+  const dr=rows.filter(r=>r.compliance==='pending'&&daysDiff(r.targetDate)>=0&&daysDiff(r.targetDate)<=7);
+  if(dr.length)alerts.push(`<div class="alert-warn"><b>&#9888; ${dr.length} item${dr.length>1?'s':''} due within 7 days</b>: ${dr.map(r=>r.tag).join(', ')}</div>`);
+  const el=document.getElementById('alerts');if(el)el.innerHTML=alerts.join('');
+}
+
+// ── CHARTS ─────────────────────────────────────────────
+function drawCharts(){
+  const done=rows.filter(r=>r.compliance==='done').length,pending=rows.length-done;
+  const sat=rows.filter(r=>r.sysStatus==='satisfactory').length,unsat=rows.length-sat;
+  const high=rows.filter(r=>r.risk==='High').length,med=rows.filter(r=>r.risk==='Medium').length,low=rows.filter(r=>r.risk==='Low').length;
+  const pm={};rows.forEach(r=>{pm[r.plant]=(pm[r.plant]||0)+1;});
+  const plants=Object.keys(pm),pvals=plants.map(p=>pm[p]);
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mm={};months.forEach(m=>{mm[m]=0;});rows.forEach(r=>{if(r.month&&mm[r.month]!==undefined)mm[r.month]++;});
+  const scores=rows.map(r=>calcScore(r));
+  const bins=[0,0,0,0];scores.forEach(s=>{if(s<25)bins[0]++;else if(s<50)bins[1]++;else if(s<75)bins[2]++;else bins[3]++;});
+
+  function mkD(id,lid,labels,data,colors){
+    if(charts[id])charts[id].destroy();
+    if(lid)document.getElementById(lid).innerHTML=labels.map((l,i)=>`<span><i style="background:${colors[i]}"></i>${l} (${data[i]})</span>`).join('');
+    charts[id]=new Chart(document.getElementById(id),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'60%'}});
+  }
+  function mkB(id,labels,data,colors){
+    if(charts[id])charts[id].destroy();
+    charts[id]=new Chart(document.getElementById(id),{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors||'#378ADD',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:false,maxRotation:45}},y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+  }
+  mkD('c1','leg1',['Done','Pending'],[done,pending],['#2D8B5E','#CA7A1A']);
+  mkD('c2','leg2',['Satisfactory','Unsatisfactory'],[sat,unsat],['#1D9E75','#E24B4A']);
+  mkB('c3',plants,pvals,'#534AB7');
+  mkB('c4',months,months.map(m=>mm[m]),'#378ADD');
+  mkD('c5','leg3',['High','Medium','Low'],[high,med,low],['#E24B4A','#EF9F27','#639922']);
+  mkB('c6',['0–24','25–49','50–74','75–100'],bins,['#639922','#EF9F27','#E24B4A','#A32D2D']);
+}
+
+// ── PRIORITY ───────────────────────────────────────────
+function renderPriority(){
+  const el=document.getElementById('priority-list');if(!el)return;
+  const sorted=[...rows].map(r=>({...r,_score:calcScore(r)})).sort((a,b)=>b._score-a._score);
+  el.innerHTML=sorted.map((r,i)=>{
+    const s=r._score,bg=i<3&&s>30?'background:#FFF4F4':'';
+    const bc=scoreColor(s);const nc=(r.notes||[]).length;
+    return `<div class="priority-row" style="${bg}">
+      <div class="priority-rank" style="color:${i<3&&s>30?'#C81E1E':'#AAA'}">${i+1}</div>
+      <div class="priority-info">
+        <div class="priority-name">${r.tag} — ${r.plant} <span style="font-weight:400;font-size:11px;color:#888">${r.location}</span>${nc?` <span style="font-size:10px;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:1px 7px">${nc} note${nc>1?'s':''}</span>`:''}</div>
+        <div class="priority-sub">${r.deficiencies} &nbsp;·&nbsp; ${riskBadge(r)} &nbsp;·&nbsp; <span style="color:${r.compliance==='pending'?'#854F0B':'#166534'}">${r.compliance}</span>${r.targetDate?` &nbsp;·&nbsp; Target: ${r.targetDate}`:''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:14px;font-weight:500;color:${bc}">${s}</div>
+        <div class="score-bar-wrap"><div class="score-bar" style="width:${s}%;background:${bc}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── TABLE RENDER ───────────────────────────────────────
+function getFiltered(){
+  const s=(document.getElementById('search')||{}).value||'';
+  const fc=(document.getElementById('fc')||{}).value||'';
+  const fs=(document.getElementById('fs')||{}).value||'';
+  const fr=(document.getElementById('fr')||{}).value||'';
+  const sl=s.toLowerCase();
+  let data=rows.filter(r=>{
+    if(fc&&r.compliance!==fc)return false;
+    if(fs&&r.sysStatus!==fs)return false;
+    if(fr&&r.risk!==fr)return false;
+    if(sl&&!['serial','plant','month','tag','location','deficiencies','responsibility','compliance','sysStatus','risk','currentStatus'].some(k=>(r[k]||'').toLowerCase().includes(sl)))return false;
+    return true;
+  });
+  if(sortCol)data=[...data].sort((a,b)=>((a[sortCol]||'').localeCompare(b[sortCol]||''))*sortDir);
+  return data;
+}
+function sortBy(k){sortCol===k?sortDir*=-1:(sortCol=k,sortDir=1);render();}
+function updateCell(id,key,val){
+  const r=rows.find(r=>r.id===id);
+  if(r){const old=r[key];r[key]=val;if(old!==val)log(`${r.tag} (${r.plant}): "${key}" changed "${old}" → "${val}"`);}
+  render();
+}
+function deleteRow(id){
+  const r=rows.find(r=>r.id===id);if(r)log(`Deleted: ${r.tag} — ${r.plant}`);
+  rows=rows.filter(r=>r.id!==id);render();
+}
+function render(){
+  const filtered=getFiltered();
+  document.getElementById('thead').innerHTML=`<tr>${COLS.map((c,i)=>{
+    const k=KEYS[i],arr=sortCol===k?(sortDir>0?' ↑':' ↓'):'';
+    return `<th style="width:${CW[i]}px;min-width:${CW[i]}px" onclick="sortBy('${k}')" title="${c}">${c}${arr}</th>`;
+  }).join('')}<th style="width:30px;min-width:30px"></th></tr>`;
+  if(!filtered.length){
+    document.getElementById('tbody').innerHTML=`<tr><td colspan="${COLS.length+1}" style="text-align:center;padding:2.5rem;color:#BBB">No records found</td></tr>`;
+  } else {
+    document.getElementById('tbody').innerHTML=filtered.map(r=>{
+      const rc=rowClass(r),sc=calcScore(r),bc=scoreColor(sc),nc=(r.notes||[]).length;
+      return `<tr class="${rc}">
+        <td><input value="${r.serial}" onchange="updateCell(${r.id},'serial',this.value)"/></td>
+        <td><input value="${r.plant}" onchange="updateCell(${r.id},'plant',this.value)"/></td>
+        <td><input value="${r.month}" onchange="updateCell(${r.id},'month',this.value)"/></td>
+        <td><input type="date" value="${r.testDate}" onchange="updateCell(${r.id},'testDate',this.value)"/></td>
+        <td><input value="${r.tag}" onchange="updateCell(${r.id},'tag',this.value)"/></td>
+        <td><input value="${r.location}" onchange="updateCell(${r.id},'location',this.value)"/></td>
+        <td title="${r.deficiencies}"><input value="${r.deficiencies}" onchange="updateCell(${r.id},'deficiencies',this.value)"/></td>
+        <td><input value="${r.responsibility}" onchange="updateCell(${r.id},'responsibility',this.value)"/></td>
+        <td><input type="date" value="${r.targetDate}" onchange="updateCell(${r.id},'targetDate',this.value)"/></td>
+        <td><select onchange="updateCell(${r.id},'compliance',this.value)" style="font-size:11px"><option ${r.compliance==='done'?'selected':''}>done</option><option ${r.compliance==='pending'?'selected':''}>pending</option></select></td>
+        <td><select onchange="updateCell(${r.id},'sysStatus',this.value)" style="font-size:11px"><option ${r.sysStatus==='satisfactory'?'selected':''}>satisfactory</option><option ${r.sysStatus==='unsatisfactory'?'selected':''}>unsatisfactory</option></select></td>
+        <td><select onchange="updateCell(${r.id},'risk',this.value)" style="font-size:11px"><option ${r.risk==='High'?'selected':''}>High</option><option ${r.risk==='Medium'?'selected':''}>Medium</option><option ${r.risk==='Low'?'selected':''}>Low</option></select></td>
+        <td style="text-align:center"><span style="font-weight:500;color:${bc};font-size:11px">${sc}</span><div class="score-bar-wrap"><div class="score-bar" style="width:${sc}%;background:${bc}"></div></div></td>
+        <td><input value="${r.currentStatus}" onchange="updateCell(${r.id},'currentStatus',this.value)"/></td>
+        <td><button class="notes-btn ${nc>0?'has-notes':''}" onclick="openNotes(${r.id})">${nc>0?nc+' note'+(nc>1?'s':''):'+ note'}</button></td>
+        <td><button class="del-btn" onclick="deleteRow(${r.id})" title="Delete row">×</button></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('rowcount').textContent=`${filtered.length} of ${rows.length} records`;
+  updateStats();renderPriority();
+}
+
+// ── NOTES ──────────────────────────────────────────────
+function openNotes(id){
+  activeNoteId=id;const r=rows.find(r=>r.id===id);if(!r)return;
+  document.getElementById('ntitle').textContent=`Notes — ${r.tag} (${r.plant})`;
+  renderNotesList(r);document.getElementById('note-input').value='';
+  document.getElementById('nwrap').classList.add('open');
+}
+function renderNotesList(r){
+  const notes=r.notes||[];
+  document.getElementById('notes-list').innerHTML=notes.length
+    ?notes.map((n,i)=>`<div class="note-entry"><div style="flex:1"><div class="note-text">${n.text}</div><div class="note-meta">${n.author} &nbsp;·&nbsp; ${n.time}</div></div><button class="note-del" onclick="deleteNote(${r.id},${i})">×</button></div>`).join('')
+    :`<div style="padding:1rem;text-align:center;color:#BBB;font-size:12px">No notes yet — add one below</div>`;
+}
+function addNote(){
+  const text=document.getElementById('note-input').value.trim();
+  const author=document.getElementById('note-author').value.trim()||'Inspector';
+  if(!text)return;
+  const r=rows.find(r=>r.id===activeNoteId);if(!r)return;
+  if(!r.notes)r.notes=[];
+  r.notes.push({text,author,time:new Date().toLocaleString()});
+  log(`Note added to ${r.tag}: "${text.substring(0,50)}${text.length>50?'...':''}"`);
+  document.getElementById('note-input').value='';
+  renderNotesList(r);render();
+}
+function deleteNote(rowId,idx){
+  const r=rows.find(r=>r.id===rowId);if(!r)return;
+  r.notes.splice(idx,1);log(`Note deleted from ${r.tag}`);
+  renderNotesList(r);render();
+}
+function closeNotes(){document.getElementById('nwrap').classList.remove('open');}
+
+// ── EMAIL ──────────────────────────────────────────────
+function genEmail(){
+  const from=document.getElementById('em-from').value||'Inspection Team';
+  const to=document.getElementById('em-to').value||'management@plant.com';
+  const site=document.getElementById('em-site').value||'All Plants';
+  const dateVal=document.getElementById('em-date').value||new Date().toLocaleDateString();
+  const total=rows.length,done=rows.filter(r=>r.compliance==='done').length;
+  const pending=rows.filter(r=>r.compliance==='pending').length;
+  const overdue=rows.filter(r=>r.compliance==='pending'&&daysDiff(r.targetDate)<0);
+  const duesoon=rows.filter(r=>r.compliance==='pending'&&daysDiff(r.targetDate)>=0&&daysDiff(r.targetDate)<=7);
+  const high=rows.filter(r=>r.risk==='High');
+  const pct=total?Math.round(done/total*100):0;
+  const topItems=[...rows].sort((a,b)=>calcScore(b)-calcScore(a)).slice(0,3);
+  const overdueSection=overdue.length?`<p style="color:#9B1C1C;font-weight:500;margin:16px 0 6px">&#9888; Overdue items (${overdue.length})</p>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">
+      <tr style="background:#F5F5F5"><th style="padding:5px 9px;border:1px solid #DDD;text-align:left">Tag</th><th style="padding:5px 9px;border:1px solid #DDD;text-align:left">Plant</th><th style="padding:5px 9px;border:1px solid #DDD;text-align:left">Deficiency</th><th style="padding:5px 9px;border:1px solid #DDD;text-align:left">Target Date</th></tr>
+      ${overdue.map(r=>`<tr style="background:#FFF0F0"><td style="padding:4px 9px;border:1px solid #DDD">${r.tag}</td><td style="padding:4px 9px;border:1px solid #DDD">${r.plant}</td><td style="padding:4px 9px;border:1px solid #DDD">${r.deficiencies}</td><td style="padding:4px 9px;border:1px solid #DDD">${r.targetDate}</td></tr>`).join('')}
+    </table>`:'';
+  const dueSoonSection=duesoon.length?`<p style="color:#854F0B;margin:0 0 8px">Items due within 7 days: <b>${duesoon.map(r=>r.tag).join(', ')}</b></p>`:'';
+  const body=`<p>Dear Management Team,</p>
+    <p style="margin:10px 0">Please find the weekly inspection summary for <b>${site}</b>, week ending <b>${dateVal}</b>.</p>
+    <table style="width:100%;border-collapse:collapse;margin:14px 0;font-size:12px">
+      <tr><td style="padding:7px 11px;border:1px solid #DDD;background:#F5F5F5;font-weight:500;width:25%">Total records</td><td style="padding:7px 11px;border:1px solid #DDD;width:25%">${total}</td><td style="padding:7px 11px;border:1px solid #DDD;background:#F5F5F5;font-weight:500;width:25%">Compliance rate</td><td style="padding:7px 11px;border:1px solid #DDD;color:${pct>=80?'#166534':'#9B1C1C'};font-weight:500;width:25%">${pct}%</td></tr>
+      <tr><td style="padding:7px 11px;border:1px solid #DDD;background:#F5F5F5;font-weight:500">Pending items</td><td style="padding:7px 11px;border:1px solid #DDD">${pending}</td><td style="padding:7px 11px;border:1px solid #DDD;background:#F5F5F5;font-weight:500">Overdue items</td><td style="padding:7px 11px;border:1px solid #DDD;color:${overdue.length?'#9B1C1C':'#166534'};font-weight:500">${overdue.length}</td></tr>
+      <tr><td style="padding:7px 11px;border:1px solid #DDD;background:#F5F5F5;font-weight:500">High risk</td><td style="padding:7px 11px;border:1px solid #DDD;color:${high.length?'#9B1C1C':'#166534'}">${high.length}</td><td style="padding:7px 11px;border:1px solid #DDD;background:#F5F5F5;font-weight:500">Unsatisfactory</td><td style="padding:7px 11px;border:1px solid #DDD">${rows.filter(r=>r.sysStatus==='unsatisfactory').length}</td></tr>
+    </table>
+    ${overdueSection}${dueSoonSection}
+    <p style="margin:14px 0 7px;font-weight:500">Top 3 priority items this week</p>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px">
+      <tr style="background:#F5F5F5"><th style="padding:5px 9px;border:1px solid #DDD;text-align:left">Tag</th><th style="padding:5px 9px;border:1px solid #DDD;text-align:left">Plant</th><th style="padding:5px 9px;border:1px solid #DDD;text-align:left">Deficiency</th><th style="padding:5px 9px;border:1px solid #DDD;text-align:left">Risk</th><th style="padding:5px 9px;border:1px solid #DDD;text-align:left">Score</th></tr>
+      ${topItems.map(r=>`<tr><td style="padding:4px 9px;border:1px solid #DDD">${r.tag}</td><td style="padding:4px 9px;border:1px solid #DDD">${r.plant}</td><td style="padding:4px 9px;border:1px solid #DDD">${r.deficiencies}</td><td style="padding:4px 9px;border:1px solid #DDD">${r.risk}</td><td style="padding:4px 9px;border:1px solid #DDD;font-weight:500;color:${scoreColor(calcScore(r))}">${calcScore(r)}</td></tr>`).join('')}
+    </table>
+    <p>Please ensure all overdue and high-risk items are actioned before the next inspection cycle. A full PDF report is available on request.</p>
+    <p style="margin-top:14px">Regards,<br><b>${from}</b><br>Plant Inspection Team</p>`;
+  document.getElementById('email-preview').innerHTML=`
+    <div class="email-header">
+      <div class="email-field"><span class="email-field-label">To:</span><span>${to}</span></div>
+      <div class="email-field"><span class="email-field-label">From:</span><span>${from}</span></div>
+      <div class="email-field"><span class="email-field-label">Subject:</span><b>Weekly Inspection Summary — ${site} — w/e ${dateVal}</b></div>
+    </div>
+    <div class="email-body" id="email-body">${body}</div>`;
+  log('Weekly email generated');
+}
+function copyEmail(){
+  const el=document.getElementById('email-body');
+  if(!el){alert('Generate the email first.');return;}
+  navigator.clipboard.writeText(el.innerText||el.textContent)
+    .then(()=>{alert('Email copied to clipboard!');})
+    .catch(()=>alert('Please select the email text and copy manually.'));
+  log('Email copied to clipboard');
+}
+function printEmail(){
+  const content=document.getElementById('email-preview');
+  if(!content||!content.querySelector('.email-body')){alert('Generate the email first.');return;}
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Weekly Inspection Email</title><style>body{font-family:Arial,sans-serif;padding:30px;font-size:13px;max-width:700px;margin:0 auto}table{width:100%;border-collapse:collapse}th,td{padding:5px 9px;border:1px solid #ccc;text-align:left}th{background:#f5f5f5}</style></head><body>${content.innerHTML}<script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.close();log('Email printed/saved as PDF');
+}
+
+// ── REPORT ─────────────────────────────────────────────
+function renderReport(){
+  const el=document.getElementById('report-preview');if(!el)return;
+  const title=(document.getElementById('rpt-title')||{}).value||'Inspection Report';
+  const by=(document.getElementById('rpt-by')||{}).value||'';
+  const site=(document.getElementById('rpt-site')||{}).value||'';
+  const date=(document.getElementById('rpt-date')||{}).value||new Date().toLocaleDateString();
+  const showNotes=(document.getElementById('rpt-notes')||{}).checked;
+  const fv=(document.querySelector('input[name="rptf"]:checked')||{}).value||'all';
+  let rptRows=[...rows];
+  if(fv==='overdue')rptRows=rptRows.filter(r=>r.compliance==='pending'&&daysDiff(r.targetDate)<0);
+  else if(fv==='high')rptRows=rptRows.filter(r=>r.risk==='High');
+  const total=rows.length,done=rows.filter(r=>r.compliance==='done').length;
+  const pct=total?Math.round(done/total*100):0;
+  const overdue=rows.filter(r=>r.compliance==='pending'&&daysDiff(r.targetDate)<0).length;
+  el.innerHTML=`
+    <div style="border-bottom:3px solid #0C447C;margin-bottom:14px;padding-bottom:10px">
+      <div style="font-size:18px;font-weight:500;color:#0C447C">${title}</div>
+      <div style="font-size:11px;color:#888;margin-top:3px">Prepared by: ${by} &nbsp;|&nbsp; Site: ${site} &nbsp;|&nbsp; Date: ${date}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+      ${[['Total records',total,''],['Compliance',pct+'%','#166534'],['Overdue',overdue,'#9B1C1C'],['High risk',rows.filter(r=>r.risk==='High').length,'#9B1C1C']].map(([l,v,c])=>`<div style="background:#F5F8FF;border:1px solid #DDEEFF;border-radius:6px;padding:8px 10px"><div style="font-size:10px;color:#888;text-transform:uppercase">${l}</div><div style="font-size:19px;font-weight:500;color:${c||'#222'};margin-top:2px">${v}</div></div>`).join('')}
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr style="background:#0C447C;color:#fff">${['#','Plant','Tag','Location','Deficiency','Target Date','Compliance','Risk','Priority Score'].map(h=>`<th style="text-align:left;padding:5px 7px;border:1px solid #0A3A6A">${h}</th>`).join('')}</tr></thead>
+      <tbody>${rptRows.sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{
+        const sc=calcScore(r);
+        const bg=r.compliance==='pending'&&daysDiff(r.targetDate)<0?'#FFF0F0':r.risk==='High'?'#FFFBEB':i%2===0?'#FAFAFA':'#fff';
+        const noteRows=showNotes&&(r.notes||[]).length?`<tr><td colspan="9" style="padding:4px 9px;border:1px solid #DDD;background:#EEF5FF;font-size:10px;color:#444;font-style:italic">${(r.notes||[]).map(n=>`<b>${n.author}</b> (${n.time}): ${n.text}`).join(' | ')}</td></tr>`:'';
+        return `<tr style="background:${bg}">${[r.serial,r.plant,r.tag,r.location,r.deficiencies,r.targetDate,r.compliance,r.risk,sc].map(v=>`<td style="padding:4px 7px;border:1px solid #DDD">${v}</td>`).join('')}</tr>${noteRows}`;
+      }).join('')}</tbody>
+    </table>
+    <div style="margin-top:12px;font-size:10px;color:#AAA;border-top:1px solid #EEE;padding-top:8px">
+      Generated: ${new Date().toLocaleString()} &nbsp;|&nbsp; Records shown: ${rptRows.length} of ${total}
+    </div>`;
+}
+function printReport(){
+  const content=document.getElementById('report-preview').innerHTML;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Inspection Report</title><style>body{font-family:Arial,sans-serif;padding:28px;font-size:12px;max-width:960px;margin:0 auto}table{width:100%;border-collapse:collapse}th,td{padding:4px 7px;border:1px solid #ccc;text-align:left}th{background:#0C447C;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{body{padding:12px}}</style></head><body>${content}<script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.close();log('PDF report generated and sent to print');
+}
+
+// ── EXPORT ─────────────────────────────────────────────
+function exportCSV(){
+  const hdr=['Serial','Plant','Month','Test Date','Tag','Location','Deficiencies','Responsibility','Target Date','Compliance','System Status','Risk','Priority Score','Current Status','Notes Count','Latest Note'];
+  const body=rows.map(r=>{
+    const notes=r.notes||[],latest=notes.length?notes[notes.length-1].text:'';
+    return[r.serial,r.plant,r.month,r.testDate,r.tag,r.location,r.deficiencies,r.responsibility,r.targetDate,r.compliance,r.sysStatus,r.risk,calcScore(r),r.currentStatus,notes.length,latest].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+  }).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([hdr.join(',')+'\n'+body],{type:'text/csv'}));
+  a.download='inspection_tracker_pro.csv';a.click();
+  log('Data exported to CSV with priority scores and notes');
+}
+
+// ── IMPORT ─────────────────────────────────────────────
+function importCSV(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const lines=ev.target.result.split('\n').filter(l=>l.trim());
+    const imported=[];
+    for(let i=1;i<lines.length;i++){
+      const cols=lines[i].split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+      if(cols.length>=12){
+        imported.push({id:nextId++,serial:cols[0],plant:cols[1],month:cols[2],testDate:cols[3],tag:cols[4],location:cols[5],deficiencies:cols[6],responsibility:cols[7],targetDate:cols[8],compliance:cols[9]||'pending',sysStatus:cols[10]||'satisfactory',risk:cols[11]||'Low',currentStatus:cols[12]||'',notes:[]});
+      }
+    }
+    rows=[...rows,...imported];
+    log(`Imported ${imported.length} records from "${file.name}"`);
+    document.getElementById('import-msg').innerHTML=`<span style="color:#166534;font-weight:500">&#10003; Successfully imported ${imported.length} records from "${file.name}"</span>`;
+    render();drawCharts();sw('records');
+  };
+  reader.readAsText(file);
+}
+
+// ── ADD / EDIT MODAL ───────────────────────────────────
+function openAdd(){
+  const flds=[['serial','Serial No','text'],['plant','Plant','text'],['month','Schedule Month','text'],['testDate','Testing Date','date'],['tag','Tag Number','text'],['location','Location','text'],['deficiencies','Deficiencies','textarea'],['responsibility','Responsibility','text'],['targetDate','Target Date','date'],['compliance','Compliance','select:done,pending'],['sysStatus','System Status','select:satisfactory,unsatisfactory'],['risk','Risk Level','select:Low,Medium,High'],['currentStatus','Current Status of Testing','text']];
+  document.getElementById('mtitle').textContent='Add new record';
+  document.getElementById('mfields').innerHTML=flds.map(([k,l,t])=>`<div class="fld"><label>${l}</label>${t.startsWith('select')?`<select id="f-${k}">${t.split(':')[1].split(',').map(o=>`<option>${o}</option>`).join('')}</select>`:t==='textarea'?`<textarea id="f-${k}" rows="2"></textarea>`:`<input type="${t}" id="f-${k}" placeholder="${l}"/>`}</div>`).join('');
+  document.getElementById('mwrap').classList.add('open');
+}
+function closeMod(){document.getElementById('mwrap').classList.remove('open');}
+function saveMod(){
+  const get=k=>(document.getElementById('f-'+k)||{}).value||'';
+  const obj={id:nextId++,serial:get('serial')||String(rows.length+1),plant:get('plant'),month:get('month'),testDate:get('testDate'),tag:get('tag'),location:get('location'),deficiencies:get('deficiencies'),responsibility:get('responsibility'),targetDate:get('targetDate'),compliance:get('compliance')||'pending',sysStatus:get('sysStatus')||'satisfactory',risk:get('risk')||'Low',currentStatus:get('currentStatus'),notes:[]};
+  rows.push(obj);
+  log(`Record added: ${obj.tag} at ${obj.plant} — priority score ${calcScore(obj)}`);
+  closeMod();render();drawCharts();
+}
+
+// ── HISTORY ────────────────────────────────────────────
+function renderHistory(){
+  const el=document.getElementById('history-list');if(!el)return;
+  el.innerHTML=auditLog.length
+    ?auditLog.map(a=>`<div class="history-item"><span class="history-time">${a.time}</span><span>${a.msg}</span></div>`).join('')
+    :`<div style="padding:2rem;text-align:center;color:#BBB">No activity recorded yet</div>`;
+}
+
+// ── TAB SWITCH ─────────────────────────────────────────
+function sw(name){
+  const names=['dashboard','records','priority','analytics','email','report','import','history'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById('tab-'+name);if(el)el.classList.add('active');
+  if(name==='dashboard'||name==='analytics')setTimeout(drawCharts,60);
+  if(name==='history')renderHistory();
+  if(name==='report'){renderReport();const d=document.getElementById('rpt-date');if(d&&!d.value)d.value=new Date().toISOString().split('T')[0];}
+  if(name==='email'){const d=document.getElementById('em-date');if(d&&!d.value)d.value=new Date().toISOString().split('T')[0];}
+}
+
+// ── INIT ───────────────────────────────────────────────
+document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+document.getElementById('rpt-date').value=new Date().toISOString().split('T')[0];
+document.getElementById('em-date').value=new Date().toISOString().split('T')[0];
+render();
+setTimeout(drawCharts,300);
+</script>
+</body>
+</html>
